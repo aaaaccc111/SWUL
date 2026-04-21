@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.png') }}">
+    <title>軟體使用紀錄</title>
+    <link href="https://cdn.jsdelivr.net/npm/air-datepicker@3.3.5/air-datepicker.min.css" rel="stylesheet">
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(odd) {
+            background-color: #ffffff;
+        }
+        tr:hover {
+            background-color: #ddd;
+        }
+        body {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        .search-container {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+            background-color: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+        }
+        .search-container input[type="text"] {
+            padding: 10px;
+            font-size: 1em;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .search-container select {
+            padding: 10px;
+            font-size: 1em;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .search-container button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px 0;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            text-decoration: none;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .error {
+            border: 2px solid red;
+        }
+        .error-message {
+            color: red;
+            font-size: 0.875em;
+        }
+        footer {
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            padding: 20px 0;
+            border-top: 1px solid #ddd;
+            margin-top: 20px;
+        }
+        nav {
+            display: flex;
+            align-items: center;
+            padding: 10px 10px;
+            background-color: #f0f0f0;
+            overflow: visible;
+            position: relative;
+            box-shadow: 0 10px 4px rgba(0, 0, 0, 0.1);
+
+        }
+        nav a {
+            display: block;
+            color: #000000;
+            text-align: center;
+            padding: 14px 20px;
+            text-decoration: none;
+            font-size: 16px;
+        }
+
+        nav a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+        .submenu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: #333;
+            border-radius: 4px;
+            padding: 10px;
+            z-index: 100;
+        }
+        .submenu button {
+            display: block;
+            padding: 5px 10px;
+            color: white;
+            background-color: #333;
+            border: none;
+            box-shadow: none;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .logo {
+            width: 50px;
+            height: auto;
+            margin-right: 10px;
+        }
+        .submenu-trigger {
+            position: relative;
+            display: inline-block;
+        }
+
+        #ordinary-search-button:hover {
+            background-color: #fffefe;
+            color: rgb(0, 0, 0);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        #advanced-search-button:hover {
+            background-color: #fffefe;
+            color: rgb(0, 0, 0);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.3.5/air-datepicker.min.js"></script>
+    <script>
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const datepickerstart = document.querySelector('#myDatepickerstart');
+            const datepickerend = document.querySelector('#myDatepickerend');
+            const softwareNameSelect = document.querySelector('#software-name');
+            const departmentSelect = document.querySelector('#departmentchoose');
+            const searchInput = document.querySelector('#search-input');
+            const startContainer = document.querySelector('#datepicker-start-container');
+            const endContainer = document.querySelector('#datepicker-end-container');
+            const searchColumnSelect = document.querySelector('#search-column');
+            const quarterlyallSelect = document.querySelector('#quarterlyall');
+            const searchButton = document.querySelector('button');
+            const ordinarySearchButton = document.querySelector('#ordinary-search-button');
+            const advancedSearchButton = document.querySelector('#advanced-search-button');
+            const searchContainer = document.querySelector('.search-container');
+
+                searchContainer.style.display = 'flex';
+
+
+
+            const en = {
+                days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+                daysShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                daysMin: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+                monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                today: 'Today',
+                clear: 'Clear',
+                dateFormat: 'yyyy-MM-dd',
+                timeFormat: 'hh:mm aa',
+                firstDay: 0
+            }
+
+
+            const stardatepicker = new AirDatepicker(datepickerstart, {
+                locale: en,
+            });
+            const enddatepicker = new AirDatepicker(datepickerend, {
+                locale: en,
+            });
+
+
+
+            function toggleFields() {
+                const column = searchColumnSelect.value;
+                if (column === 'ProgramName') {
+                    softwareNameSelect.style.display = 'inline-block';
+                    searchInput.style.display = 'none';
+                    startContainer.style.display = 'none';
+                    endContainer.style.display = 'none';
+                    departmentSelect.style.display = 'none';
+                    quarterlyallSelect.style.display = 'none';
+                    searchButton.style.display = 'inline-block';
+                } else if (column === 'StartTime') {
+                    softwareNameSelect.style.display = 'none';
+                    searchInput.style.display = 'none';
+                    startContainer.style.display = 'inline-block';
+                    endContainer.style.display = 'inline-block';
+                    departmentSelect.style.display = 'none';
+                    quarterlyallSelect.style.display = 'none';
+                    searchButton.style.display = 'inline-block';
+                    if (!datepicker) {
+                        initDatepicker();
+                    }
+                    datepicker.show();
+                } else if (column === 'department') {
+                    departmentSelect.style.display = 'inline-block';
+                    softwareNameSelect.style.display = 'none';
+                    startContainer.style.display = 'none';
+                    endContainer.style.display = 'none';
+                    searchInput.style.display = 'none';
+                    quarterlyallSelect.style.display = 'none';
+                    searchButton.style.display = 'inline-block';
+                } else if (column === 'quarterly') {
+                    departmentSelect.style.display = 'none';
+                    softwareNameSelect.style.display = 'none';
+                    startContainer.style.display = 'none';
+                    endContainer.style.display = 'none';
+                    searchInput.style.display = 'none';
+                    quarterlyallSelect.style.display = 'inline-block';
+                    searchButton.style.display = 'inline-block';
+                } else {
+                    softwareNameSelect.style.display = 'none';
+                    startContainer.style.display = 'none';
+                    endContainer.style.display = 'none';
+                    searchInput.style.display = 'inline-block';
+                    departmentSelect.style.display = 'none';
+                    quarterlyallSelect.style.display = 'none';
+                    searchButton.style.display = 'inline-block';
+                }
+            }
+
+
+            searchColumnSelect.addEventListener('change', toggleFields);
+
+
+            datepickerstart.addEventListener('click', function() {
+                if (datepicker) {
+                    datepicker.show();
+                } else {
+                    initDatepicker();
+                    datepicker.show();
+                }
+            });
+
+
+            softwareNameSelect.style.display = 'none';
+            startContainer.style.display = 'none';
+            endContainer.style.display = 'none';
+            departmentSelect.style.display = 'none';
+            quarterlyallSelect.style.display = 'none';
+
+
+            queryTypeSelect.addEventListener('change', toggleQueryOptions);
+        });
+
+
+        function search() {
+            const searchInput = document.querySelector('#search-input');
+            const softwareNameSelect = document.querySelector('#software-name');
+            const datepickerInputStart = document.querySelector('#myDatepickerstart');
+            const datepickerInputEnd = document.querySelector('#myDatepickerend');
+            const column = document.querySelector('#search-column').value;
+            const departmentSelect = document.querySelector('#departmentchoose');
+            const quarterlySelect = document.querySelector('#quarterlyall');
+
+            const quarterRanges = {
+                'quarterly24Q3': { start: '2024-07-01', end: '2024-09-30' },
+                'quarterly24Q4': { start: '2024-10-01', end: '2024-12-31' },
+                'quarterly25Q1': { start: '2025-01-01', end: '2025-03-31' },
+                'quarterly25Q2': { start: '2025-04-01', end: '2025-06-30' },
+                'quarterly25Q3': { start: '2025-07-01', end: '2025-09-30' },
+                'quarterly25Q4': { start: '2025-10-01', end: '2025-12-31' }
+            };
+
+            let query, startDate, endDate;
+
+            if (column === 'ProgramName') {
+                query = softwareNameSelect.value;
+            } else if (column === 'StartTime') {
+                startDate = datepickerInputStart.value;
+                endDate = datepickerInputEnd.value;
+
+                const startDateObj = new Date(startDate);
+                const endDateObj = new Date(endDate);
+
+                if (endDateObj < startDateObj){
+                    alert('結束使用時間不能早於開始使用時間');
+                    return;
+                }
+
+                endDateObj.setDate(endDateObj.getDate() + 1);
+                endDate = endDateObj.toISOString().split('T')[0];
+            } else if (column === 'department') {
+                const departmentValue = departmentSelect.value;
+                const computerNames = departmentValue.split(',');
+
+                let Departmentquery = '';
+
+                if (computerNames.length === 1) {
+                    Departmentquery = computerNames[0];
+                } else if (computerNames.length === 2) {
+                    Departmentquery = `${computerNames[0]} 以及 ${computerNames[1]}`;
+                } else {
+                    Departmentquery = `${computerNames.slice(0, -1).join('、')} 以及 ${computerNames[computerNames.length - 1]}`;
+                }
+                query = computerNames.join(',');
+            } else if (column === 'quarterly') {
+                const quarterly = quarterlySelect.value;
+                if (quarterRanges[quarterly]) {
+                    startDate = quarterRanges[quarterly].start;
+                    endDate = quarterRanges[quarterly].end;
+                } else {
+                    alert('請選擇有效的季別');
+                    return;
+                }
+            } else{
+                query = searchInput.value;
+            }
+
+            console.log(`Generated URL: ${column === 'StartTime' || column === 'quarterly'
+                ? `/search_results?start_time=${encodeURIComponent(startDate)}&end_time=${encodeURIComponent(endDate)}&column=${encodeURIComponent(column)}`
+                : `/search_results?query=${encodeURIComponent(query)}&column=${encodeURIComponent(column)}`}`);
+
+            const searchUrl = (column === 'StartTime' || column === 'quarterly')
+                ? `/search_results?start_time=${encodeURIComponent(startDate)}&end_time=${encodeURIComponent(endDate)}&column=${encodeURIComponent(column)}`
+                : `/search_results?query=${encodeURIComponent(query)}&column=${encodeURIComponent(column)}`;
+
+
+            window.open(searchUrl, '_blank', 'width=800,height=600');
+
+        }
+
+        function toggleSubmenu(event) {
+            event.stopPropagation();
+
+            var submenu = document.getElementById('submenu');
+            var trigger = document.querySelector('.submenu-trigger');
+
+            if (submenu.style.display === 'block') {
+                submenu.style.display = 'none';
+            } else {
+                submenu.style.display = 'block';
+
+
+                var rect = trigger.getBoundingClientRect();
+
+
+                submenu.style.position = 'absolute';
+                submenu.style.left = rect.left + window.scrollX + 'px';
+                submenu.style.top = rect.bottom + window.scrollY + 'px';
+            }
+        }
+
+
+
+        document.addEventListener('click', function(event) {
+            var submenu = document.getElementById('submenu');
+            var trigger = document.querySelector('.submenu-trigger');
+            var trigger = document.querySelector('.submenu-trigger');
+
+
+            if (!submenu.contains(event.target) && !trigger.contains(event.target)) {
+                submenu.style.display = 'none';
+            }
+        });
+
+
+    </script>
+</head>
+<body>
+    <nav>
+        <div class="logo-container">
+            <a href="/">
+            </a>
+            <span class="title"></span>
+        </div>
+        <a href="/real_time">即時資料</a>
+        <div class="submenu-container">
+            <a href="javascript:void(0);" class="submenu-trigger" onclick="toggleSubmenu(event)">查詢</a>
+            <div class="submenu" id="submenu">
+                <button id="ordinary-search-button">一般查詢</button>
+                <button id="advanced-search-button">進階查詢</button>
+            </div>
+        </div>
+        <a href="/graph">圖表</a>
+    </nav>
+    <div class="search-container">
+        <div id="search-column-container" style="display: flex;">
+            <select id="search-column">
+                <option value="USERNAME">以使用者查詢</option>
+                <option value="ProgramName">以軟體名稱查詢</option>
+                <option value="StartTime">以使用區間查詢</option>
+                <option value="department">以部門查詢</option>
+                <option value="quarterly">以季別查詢</option>
+            </select>
+            <input type="text" id="search-input" placeholder="輸入使用者名稱">
+            <select id="software-name">
+                <option value="">請選擇軟體</option>
+            </select>
+            <select id="departmentchoose" style="display: none;">
+                <option value="TemoHung,LeoChen,HardyLin,DebbyWang,AndyLee2">HW</option>
+                <option value="HubertYang,JamesChang,ChiangChiang">PPD</option>
+                <option value="YoyoWei,WillyChen,OwenYang,EdgarLiao">ME</option>
+                <option value="NickHuang,KyanKo,FrankChu,ChrisLee,Andy_Y_Lee,EthanHsieh,GrantWang,FrankChen,AndyYLee">FW</option>
+                <option value="KevinCheng,ShawnLin">MKT</option>
+            </select>
+            <select id="quarterlyall" style="display: none;">
+                <option value="quarterly24Q3">24Q3</option>
+                <option value="quarterly24Q4">24Q4</option>
+                <option value="quarterly25Q1">25Q1</option>
+                <option value="quarterly25Q2">25Q2</option>
+                <option value="quarterly25Q3">25Q3</option>
+                <option value="quarterly25Q4">25Q4</option>
+            </select>
+            <div id="datepicker-start-container" style="display: none;">
+                <input type="text" id="myDatepickerstart" placeholder="開始使用時間" readonly>
+            </div>
+
+            <div id="datepicker-end-container" style="display: none;">
+                <input type="text" id="myDatepickerend" placeholder="結束使用時間" readonly>
+            </div>
+        </div>
+
+        <button onclick="search()">查詢</button>
+        <div id="error-message" class="error-message"></div>
+    </div>
+    <script>
+        document.getElementById("ordinary-search-button").addEventListener("click", function() {
+            window.location.href = "/ordinary_search";
+        });
+        document.getElementById("advanced-search-button").addEventListener("click", function() {
+            window.location.href = "/advanced_search";
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            fetch('/get_software_list')
+                .then(response => response.json())
+                .then(data => {
+                    let select = document.getElementById('software-name');
+                    data.forEach(software => {
+                        let option = document.createElement('option');
+                        option.value = software;
+                        option.textContent = software;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error loading software list:', error));
+        });
+    </script>
+</body>
+</html>

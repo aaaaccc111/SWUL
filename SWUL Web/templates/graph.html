@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.png') }}">
+    <title>軟體使用紀錄</title>
+    <link href="https://cdn.jsdelivr.net/npm/air-datepicker@3.3.5/air-datepicker.min.css" rel="stylesheet">
+    <style>
+        .search-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+            flex-direction :column;
+        }
+        .search-container input[type="text"] {
+            padding: 10px;
+            font-size: 1em;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .search-container button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px 0;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            text-decoration: none;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        footer {
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            padding: 20px 0;
+            border-top: 1px solid #ddd;
+            margin-top: 20px;
+        }
+        nav {
+            display: flex;
+            align-items: center;
+            padding: 10px 10px;
+            background-color: #f0f0f0;
+            overflow: visible;
+            position: relative;
+            box-shadow: 0 10px 4px rgba(0, 0, 0, 0.1);
+
+        }
+        nav a {
+            display: block;
+            color: #000000;
+            text-align: center;
+            padding: 14px 20px;
+            text-decoration: none;
+            font-size: 16px;
+        }
+        nav a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+        .submenu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: #333;
+            border-radius: 4px;
+            padding: 10px;
+            z-index: 100;
+        }
+        .submenu button {
+            display: block;
+            padding: 5px 10px;
+            color: white;
+            background-color: #333;
+            border: none;
+            box-shadow: none;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .logo {
+            width: 50px;
+            height: auto;
+            margin-right: 10px;
+        }
+        .submenu-trigger {
+            position: relative;
+            display: inline-block;
+        }
+
+        #ordinary-search-button:hover {
+            background-color: #fffefe;
+            color: rgb(0, 0, 0);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        #advanced-search-button:hover {
+            background-color: #fffefe;
+            color: rgb(0, 0, 0);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+        }
+        #timeRangeButtons {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .date-search-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        #compare {
+            background-color: #ccc;
+            color: #666;
+            border: none;
+            cursor: not-allowed;
+        }
+        #compare:hover {
+            cursor: not-allowed;
+            background-color: #ccc;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.3.5/air-datepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const datepickerstart = document.querySelector('#myDatepickerstart');
+            const ordinarySearchButton = document.querySelector('#ordinary-search-button');
+            const advancedSearchButton = document.querySelector('#advanced-search-button');
+
+            let isUserPageEnabled = false;
+
+            const en = {
+                days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+                daysShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                daysMin: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+                monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                today: 'Today',
+                clear: 'Clear',
+                dateFormat: 'yyyy-MM-dd',
+                timeFormat: 'hh:mm aa',
+                firstDay: 0
+            }
+
+            const stardatepicker = new AirDatepicker(datepickerstart, {
+                locale: en,
+            });
+
+
+            datepickerstart.addEventListener('click', function() {
+                if (datepicker) {
+                    datepicker.show();
+                } else {
+                    initDatepicker();
+                    datepicker.show();
+                }
+            });
+
+
+        });
+
+
+
+        function toggleSubmenu(event) {
+            event.stopPropagation();
+
+            var submenu = document.getElementById('submenu');
+            var trigger = document.querySelector('.submenu-trigger');
+
+            if (submenu.style.display === 'block') {
+                submenu.style.display = 'none';
+            } else {
+                submenu.style.display = 'block';
+
+
+                var rect = trigger.getBoundingClientRect();
+
+
+                submenu.style.position = 'absolute';
+                submenu.style.left = rect.left + window.scrollX + 'px';
+                submenu.style.top = rect.bottom + window.scrollY + 'px';
+            }
+        }
+
+
+
+        document.addEventListener('click', function(event) {
+            var submenu = document.getElementById('submenu');
+            var trigger = document.querySelector('.submenu-trigger');
+            var trigger = document.querySelector('.submenu-trigger');
+
+
+            if (!submenu.contains(event.target) && !trigger.contains(event.target)) {
+                submenu.style.display = 'none';
+            }
+        });
+
+
+
+    </script>
+</head>
+<body>
+    <nav>
+        <div class="logo-container">
+            <a href="/">
+            </a>
+            <span class="title"></span>
+        </div>
+        <a href="/real_time">即時資料</a>
+        <div class="submenu-container">
+            <a href="javascript:void(0);" class="submenu-trigger" onclick="toggleSubmenu(event)">查詢</a>
+            <div class="submenu" id="submenu">
+                <button id="ordinary-search-button">一般查詢</button>
+                <button id="advanced-search-button">進階查詢</button>
+            </div>
+        </div>
+        <a href="/graph">圖表</a>
+    </nav>
+    <div class="search-container">
+        <div class="button-group">
+            <button id="showLineChartBtn">軟體使用時間</button>
+            <button id="showBarChartBtn">個人使用紀錄</button>
+            <button id="compare">綜合比較</button>
+        </div>
+        <div id="timeRangeButtons" style="display: none;">
+            <button id="btn60Days">60D</button>
+            <button id="btn30Days">30D</button>
+            <button id="btn10Days">10D</button>
+        </div>
+        <div class="date-search-container">
+            <div id="frequency-Button">
+                <button id="frequency">依頻率</button>
+            </div>
+            <div id="time-Button">
+                <button id="time">依時間</button>
+            </div>
+            <div id="datepicker-start-container">
+                <input type="text" id="myDatepickerstart" placeholder="選擇日期" readonly>
+            </div>
+            <div id="search-Button">
+                <button id="search">查詢</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="chartContainer" style="position: relative; width: 100%; height: 400px; margin: auto;">
+        <canvas id="chartCanvas" style="position: absolute; top: 0; left: 0;"></canvas>
+        <canvas id="barChartCanvas" style="position: absolute; top: 0; left: 0;"></canvas>
+    </div>
+
+
+    <script>
+        document.getElementById("ordinary-search-button").addEventListener("click", function() {
+            window.location.href = "/ordinary_search";
+        });
+        document.getElementById("advanced-search-button").addEventListener("click", function() {
+            window.location.href = "/advanced_search";
+        });
+    </script>
+    <script>
+        let linechart, barchart;
+        let isShowLineChart = false;
+        let isShowBarChart = false;
+        let selectedDate;
+        const dynamicColors = [
+            "rgb(255, 99, 132)",    // 紅
+            "rgb(54, 162, 235)",    // 藍
+            "rgb(255, 206, 86)",    // 黃
+            "rgb(75, 192, 192)",    // 綠
+            "rgb(153, 102, 255)",   // 紫
+            "rgb(255, 159, 64)",    // 橘
+            "rgb(201, 203, 207)",   // 淺灰
+            "rgb(100, 181, 246)",   // 天藍
+            "rgb(244, 143, 177)",   // 粉
+            "rgb(129, 199, 132)"    // 青綠
+        ];
+
+        const colorMap = {
+            "SLDWORKS.exe": "rgb(255, 99, 132)",   // 紅色
+            "UV4.exe": "rgb(54, 162, 235)",   // 藍色
+            "X2.EXE": "rgb(255, 206, 86)",   // 黃色
+            "acad.exe": "rgb(75, 192, 192)",   // 綠色
+        };
+
+        async function fetchData(chartType, selectedDate) {
+            try {
+                let url = `/graph_data?chart_type=${chartType}`;
+                if (selectedDate) {
+                    url += `&date=${selectedDate}`;
+                }
+                console.log("API請求URL:", url);
+
+                const response = await fetch(url);
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error("取得資料失敗:", error);
+                return null;
+            }
+        }
+
+        async function showLineChart(days) {
+            try {
+                const response = await fetch(`/graph_data?days=${days}&chart_type=line`);
+                const data = await response.json();
+                if (data.line_chart) {
+                    updateLineChart(data.line_chart);
+                } else {
+                    console.error("取得資料失敗:", data);
+                }
+            } catch (error) {
+                console.error("請求資料時發生錯誤:", error);
+            }
+        }
+
+        async function showBarChart(selectedDate) {
+            const data = await fetchData('bar',selectedDate);
+            if (!data || !data.bar_chart) return;
+
+            const ctx = document.getElementById('barChartCanvas').getContext('2d');
+
+
+            if (linechart) {
+                linechart.destroy();
+            }
+
+            if (barchart) {
+                barchart.destroy();
+            }
+
+            const labels = data.bar_chart.labels;
+            const datasets = data.bar_chart.datasets.map(dataset => {
+                const color = getFixedColor(dataset.label);
+                return {
+                    label: dataset.label,
+                    data: dataset.data.map(value => parseFloat((value / 60).toFixed(1))),
+                    backgroundColor: color,
+                    borderColor: color,
+                    borderWidth: 1
+                };
+            });
+
+            barchart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 0,
+                            bottom: 20,
+                            left: 20,
+                            right: 20
+                        }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: "" } },
+                        y: {
+                            title: { display: true, text: "" },
+                            ticks: { callback: (value) => value + "小時" }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: true },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    return tooltipItem.raw + "小時";
+                                }
+                            }
+                        }
+
+                    }
+                }
+            });
+            showWatermark(document.getElementById('chartCanvas'));
+        }
+
+        async function showFrequencyChart(selectedDate) {
+            const data = await fetchData('frequency', selectedDate);
+            if (!data || !data.frequency_chart) return;
+
+            const ctx = document.getElementById('barChartCanvas').getContext('2d');
+
+            if (barchart) barchart.destroy();
+            if (linechart) linechart.destroy();
+
+            const labels = data.frequency_chart.labels;
+            const datasets = data.frequency_chart.datasets.map(dataset => {
+                const color = getFixedColor(dataset.label);
+                return {
+                    label: dataset.label,
+                    data: dataset.data,
+                    backgroundColor: color,
+                    borderColor: color,
+                    borderWidth: 1
+                };
+            });
+
+            barchart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: { top: 0, bottom: 20, left: 20, right: 20 }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: "" } },
+                        y: {
+                            title: { display: true, text: "" },
+                            ticks: { precision: 0 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: true },
+                        tooltip: {
+                            callbacks: {
+                                label: function (tooltipItem) {
+                                    return tooltipItem.raw + " 次";
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            showWatermark(document.getElementById('chartCanvas'));
+        }
+
+        async function updateLineChart(lineChartData) {
+            if (!lineChartData || !lineChartData.labels || !lineChartData.datasets) {
+                console.error("無效的數據:", lineChartData);
+                return;
+            }
+
+            console.log("Line Chart Data:", lineChartData);
+
+            const ctx = document.getElementById('chartCanvas').getContext('2d');
+            if (barchart) {
+                barchart.destroy();
+            }
+
+            if (linechart) {
+                linechart.destroy();
+            }
+
+            const datasets = lineChartData.datasets.map(dataset => ({
+                label: dataset.label,
+                data: dataset.data,
+                borderColor: getFixedColor(dataset.label),
+                backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                fill: false
+            }));
+
+            console.log("Datasets:", datasets);
+
+            linechart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: lineChartData.labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: ''
+                            },
+                            ticks: {
+                                autoSkip: true,
+                                maxRotation: 45,
+                                minRotation: 0
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: ''
+                            },
+                            ticks: {
+                                callback: function (value) {
+                                    return value + "小時";
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+
+            showWatermark(document.getElementById('chartCanvas'));
+        }
+
+        function hashStringToColor(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const r = (hash >> 0) & 0xFF;
+            const g = (hash >> 8) & 0xFF;
+            const b = (hash >> 16) & 0xFF;
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+
+        function getFixedColor(softwareName) {
+            if (!colorMap[softwareName]) {
+                colorMap[softwareName] = hashStringToColor(softwareName);
+            }
+            return colorMap[softwareName];
+        }
+
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const showLineChartBtn = document.getElementById('showLineChartBtn');
+            const showBarChartBtn = document.getElementById("showBarChartBtn");
+            const timeRangeButtons = document.getElementById('timeRangeButtons');
+            const datepickerstart = document.getElementById('myDatepickerstart');
+            const searchButton = document.getElementById('search');
+            const startContainer = document.getElementById('datepicker-start-container');
+            const time=document.getElementById('time');
+            const frequency=document.getElementById('frequency');
+
+
+
+
+            searchButton.style.display = 'none';
+            startContainer.style.display = 'none';
+            time.style.display = 'none';
+            frequency.style.display = 'none';
+
+            document.getElementById("btn60Days").addEventListener("click", () => showLineChart(60));
+            document.getElementById("btn30Days").addEventListener("click", () => showLineChart(30));
+            document.getElementById("btn10Days").addEventListener("click", () => showLineChart(10));
+
+            let isShowLineChart = false;
+            let isShowBarChart = false;
+            let chartMode = "time";
+
+
+
+            showLineChartBtn.addEventListener('click', function() {
+                isShowLineChart = !isShowLineChart;
+
+                isShowBarChart = false;
+                showBarChartBtn.style.backgroundColor = '#007bff';
+                showBarChartBtn.style.color = 'white';
+
+
+                timeRangeButtons.style.display = isShowLineChart ? 'block' : 'none';
+
+
+                startContainer.style.display = 'none';
+                searchButton.style.display = 'none';
+                time.style.display = 'none';
+                frequency.style.display = 'none';
+
+                showLineChartBtn.style.backgroundColor = isShowLineChart ? '#28a745' : '#007bff';
+                showLineChartBtn.style.color = 'white';
+            });
+
+
+            showBarChartBtn.addEventListener("click", function() {
+                isShowBarChart = !isShowBarChart;
+
+                showBarChartBtn.style.backgroundColor = isShowBarChart ? '#28a745' : '#007bff';
+                showBarChartBtn.style.color = 'white';
+
+                timeRangeButtons.style.display = 'none';
+
+
+                isShowLineChart = false;
+                showLineChartBtn.style.backgroundColor = '#007bff';
+                showLineChartBtn.style.color = 'white';
+
+
+                startContainer.style.display = isShowBarChart ? 'block' : 'none';
+                searchButton.style.display = isShowBarChart ? 'block' : 'none';
+                time.style.display = isShowBarChart ? 'block' : 'none';
+                frequency.style.display = isShowBarChart ? 'block' : 'none';
+
+                searchButton.disabled = true;
+                searchButton.style.backgroundColor = 'gray';
+
+                time.style.backgroundColor = '#007bff';
+                time.style.color = 'white';
+                frequency.style.backgroundColor = '#007bff';
+                frequency.style.color = 'white';
+
+
+            });
+
+            time.addEventListener("click", function () {
+                chartMode = "time";
+                time.style.backgroundColor = '#28a745';
+                time.style.color = 'white';
+                frequency.style.backgroundColor = '#007bff';
+                frequency.style.color = 'white';
+
+                searchButton.disabled = false;
+                searchButton.style.backgroundColor = '#007bff';
+
+                timeRangeButtons.style.display = 'none';
+                startContainer.style.display = 'block';
+                searchButton.style.display = 'block';
+                datepickerstart.style.display = 'block';
+            });
+
+            frequency.addEventListener("click", function () {
+                chartMode = "frequency";
+
+                frequency.style.backgroundColor = '#28a745';
+                frequency.style.color = 'white';
+                time.style.backgroundColor = '#007bff';
+                time.style.color = 'white';
+
+
+                searchButton.disabled = false;
+                searchButton.style.backgroundColor = '#007bff';
+
+                timeRangeButtons.style.display = 'none';
+                startContainer.style.display = 'block';
+                searchButton.style.display = 'block';
+                datepickerstart.style.display = 'block';
+
+
+                chartMode = "frequency";
+            });
+
+
+
+            searchButton.addEventListener("click", function () {
+                const selectedDate = datepickerstart.value;
+                if (selectedDate) {
+                    if (chartMode === "frequency") {
+
+                        showFrequencyChart(selectedDate);
+                    } else {
+
+                        showBarChart(selectedDate);
+                    }
+                } else {
+                    alert("請選擇日期");
+                }
+            });
+
+        });
+
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.png') }}">
+    <title>查詢結果</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            cursor: pointer;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(odd) {
+            background-color: #ffffff;
+        }
+        tr:hover {
+            background-color: #ddd;
+        }
+        body {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        .center {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+            background-color: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+            flex-direction: row;
+        }
+        .center input[type="text"],
+        .center select {
+            padding: 10px;
+            font-size: 1em;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .center .button {
+            display: inline-block;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            text-decoration: none;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .title {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .error {
+            border: 2px solid red;
+        }
+        .error-message {
+            color: red;
+            font-size: 0.875em;
+        }
+        footer {
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            padding: 20px 0;
+            border-top: 1px solid #ddd;
+            margin-top: 20px;
+        }
+        .checkbox-container {
+            display: flex;
+            font-size: 12px;
+            align-items: center;
+        }
+
+        .center input[type="checkbox"] {
+            margin-left: 10px;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+            });
+
+            const table = document.getElementById("data-table");
+            const rows = Array.from(table.querySelectorAll("tbody tr"));
+            const startTimeHeader = document.querySelector("th[data-sort='start-time']");
+            const userPageButton = document.getElementById('toggle-user-page');
+            const exportLink = document.getElementById('export-link');
+
+
+            let sortDirectionStartTime = 'asc';
+            let sortDirectionTitle = 'asc';
+            let isUserPageEnabled = false;
+
+
+            document.querySelector('[data-sort="start-time"]').addEventListener("click", () => {
+                rows.sort((a, b) => {
+                    const dateA = new Date(a.cells[3].textContent);
+                    const dateB = new Date(b.cells[3].textContent);
+
+                    return sortDirectionStartTime === 'asc' ? dateA - dateB : dateB - dateA;
+                });
+
+
+                sortDirectionStartTime = sortDirectionStartTime === 'asc' ? 'desc' : 'asc';
+
+
+                rows.forEach(row => table.querySelector("tbody").appendChild(row));
+            });
+
+
+            document.querySelector(".title").addEventListener("click", () => {
+                rows.sort((a, b) => {
+                    const userA = a.cells[0].textContent.replace(/^Hy-/, '').toLowerCase();
+                    const userB = b.cells[0].textContent.replace(/^Hy-/, '').toLowerCase();
+                    const dateA = new Date(a.cells[3].textContent);
+                    const dateB = new Date(b.cells[3].textContent);
+
+
+                    if (userA === userB) {
+
+                        return sortDirectionTitle === 'asc' ? dateA - dateB : dateB - dateA;
+                    } else {
+
+                        return sortDirectionTitle === 'asc' ? userA.localeCompare(userB) : userB.localeCompare(userA);
+                    }
+                });
+
+
+                sortDirectionTitle = sortDirectionTitle === 'asc' ? 'desc' : 'asc';
+
+
+                rows.forEach(row => table.querySelector("tbody").appendChild(row));
+            });
+
+            userPageButton.addEventListener('click', () => {
+                isUserPageEnabled = !isUserPageEnabled;
+
+
+                userPageButton.style.backgroundColor = isUserPageEnabled ? '#28a745' : '#007bff';
+                userPageButton.textContent = isUserPageEnabled ? '使用者分頁' : '使用者分頁';
+
+
+                const url = new URL(exportLink.href);
+                if (isUserPageEnabled) {
+                    url.searchParams.set('include-checkbox', 'yes');
+                } else {
+                    url.searchParams.delete('include-checkbox');
+                }
+                exportLink.href = url.toString();
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1></h1>
+    <div class="center">
+        <button id="toggle-user-page" class="button">使用者分頁</button>
+        <a id="export-link" href="{{ url_for('export', query=request.args.get('query', ''), column=request.args.get('column', 'USERNAME'), start_date=request.args.get('start_time', ''), end_date=request.args.get('end_time', '')) }}" class="button">匯出</a>
+    </div>
+    <table id="data-table" border="1">
+        <thead>
+            <tr>
+                <th colspan="10" class="title">查詢結果</th>
+            </tr>
+            <tr>
+                <th style="text-align: center;">使用者</th>
+                <th style="text-align: center;">軟體名稱</th>
+                <th style="text-align: center;">PID</th>
+                <th style="text-align: center;" data-sort="start-time">開始使用時間</th>
+                <th style="text-align: center;">結束使用時間</th>
+                <th style="text-align: center;">軟體使用時間</th>
+                <th style="text-align: center;">電腦名稱</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data %}
+            <tr>
+                <td>{{ row[0] }}</td>
+                <td>{{ row[1] }}</td>
+                <td>{{ row[2] }}</td>
+                <td>{{ row[3] }}</td>
+                <td>{{ row[4] }}</td>
+                <td>{{ row[5] }}</td>
+                <td>{{ row[6] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
